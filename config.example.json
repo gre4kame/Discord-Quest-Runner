@@ -1,0 +1,28 @@
+{
+  "discord": {
+    "token": "",
+    "apiVersion": 10
+  },
+  "engine": {
+    "autoStart": false,
+    "autoEnroll": true,
+    "autoClaim": false,
+    "startDelaySeconds": [4, 25],
+    "heartbeatSeconds": [24, 40],
+    "videoTickMs": [7000, 9500],
+    "overshootSeconds": [20, 180],
+    "closeDelaySeconds": [15, 90],
+    "gapMinutes": [2, 7],
+    "pauseChance": 0.1,
+    "pauseSeconds": [2.5, 11],
+    "maxQuestsPerSession": 8,
+    "keepAwake": true
+  },
+  "web": {
+    "port": 4780,
+    "openBrowser": true
+  },
+  "network": {
+    "proxy": ""
+  }
+}

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quest Runner</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%237c5cff'/%3E%3Cpath d='M24 20h16a6 6 0 0 1 6 6v12a6 6 0 0 1-6 6H30l-8 6v-6a6 6 0 0 1-4-5.7V26a6 6 0 0 1 6-6z' fill='white'/%3E%3Cpath d='M34 29l4 6 4-6' stroke='%237c5cff' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">Q</div>
+        <div class="brand-text">
+          <h1>Quest Runner</h1>
+          <p id="subtitle">Discord-квесты без запуска игр</p>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="userbox" id="userbox">
+          <span class="dot"></span>
+          <span class="muted">нет токена</span>
+        </div>
+        <div class="actions">
+          <button id="btnRefresh" class="ghost" title="Перечитать квесты">Обновить</button>
+          <button id="btnSettings" class="ghost" title="Настройки">⚙ Настройки</button>
+          <button id="btnStart" class="primary">Старт</button>
+          <button id="btnStop" class="danger hidden">Стоп</button>
+        </div>
+      </div>
+    </header>
+
+    <div id="banner" class="banner hidden"></div>
+
+    <section class="stats" id="stats"></section>
+
+    <main class="layout">
+      <section class="panel quests-panel">
+        <div class="panel-head">
+          <h2>Доступные задания <span id="questCount" class="count"></span></h2>
+          <label class="check-all"><input type="checkbox" id="checkAll" /> <span>выбрать все</span></label>
+        </div>
+        <div id="quests" class="quest-grid"></div>
+        <div id="empty" class="empty hidden">
+          <div class="empty-icon">🛰</div>
+          <p id="emptyText">Квестов не видно. Нажми «Обновить».</p>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="panel">
+          <div class="panel-head"><h2>Сессия</h2><span id="phase" class="phase idle">ожидание</span></div>
+          <div id="sessionInfo" class="session"></div>
+        </section>
+
+        <section class="panel log-panel">
+          <div class="panel-head"><h2>Лог</h2><button id="btnClearLog" class="link">очистить</button></div>
+          <div id="log" class="log"></div>
+        </section>
+
+        <p class="legal">
+          Инструмент нарушает <a href="https://discord.com/terms" target="_blank" rel="noreferrer">условия Discord</a>
+          (автоматизация аккаунта). С апреля 2026 за это выдают нарушение аккаунта и блокируют раздел квестов.
+          Используй на свой риск.
+        </p>
+      </aside>
+    </main>
+  </div>
+
+  <dialog id="settings" class="modal">
+    <form id="settingsForm">
+      <header class="modal-head">
+        <h2>Настройки</h2>
+        <button type="button" class="icon" data-close="settings" aria-label="Закрыть">✕</button>
+      </header>
+
+      <div class="modal-body">
+        <section class="field-block">
+          <label class="field">
+            <span>Токен Discord (твой user token)</span>
+            <input type="password" name="token" placeholder="вставь токен" autocomplete="off" spellcheck="false" />
+            <small>
+              Хранится только в <code>config.json</code> на этом компьютере. Как достать: Discord → Ctrl+Shift+I →
+              Application → Local Storage → <code>https://discord.com</code> → поле <code>token</code>.
+            </small>
+          </label>
+          <div class="inline">
+            <button type="button" class="ghost" id="btnSelftest">Проверить токен</button>
+            <button type="button" class="ghost danger-text" id="btnClearToken">Забыть токен</button>
+            <span id="tokenStatus" class="muted small"></span>
+          </div>
+        </section>
+
+        <section class="field-block">
+          <label class="field">
+            <span>Прокси (если Discord не открывается напрямую)</span>
+            <input type="text" name="proxy" placeholder="http://127.0.0.1:10809 — пусто = определить самому" autocomplete="off" spellcheck="false" />
+            <small>
+              Применяется после перезапуска программы. Если пусто, берётся <code>HTTPS_PROXY</code> из системы,
+              затем прокси из настроек Windows. Поддерживаются HTTP/HTTPS-прокси.
+            </small>
+          </label>
+        </section>
+
+        <section class="field-block switches">
+          <label class="switch"><input type="checkbox" name="autoStart" /><span>Запускать квесты сразу при старте программы</span></label>
+          <label class="switch"><input type="checkbox" name="autoEnroll" /><span>Принимать задания автоматически</span></label>
+          <label class="switch"><input type="checkbox" name="autoClaim" /><span>Пытаться забрать награду после выполнения</span></label>
+          <label class="switch"><input type="checkbox" name="keepAwake" /><span>Не давать компьютеру уснуть во время сессии</span></label>
+        </section>
+
+        <section class="field-block">
+          <h3>Тайминги «как у человека»</h3>
+          <p class="muted small">Рандомные диапазоны. Чем шире — тем меньше похоже на бота, но тем дольше.</p>
+          <div class="pairs">
+            <label class="field">
+              <span>Интервал heartbeat, сек</span>
+              <div class="range"><input type="number" name="hbMin" min="10" max="120" /><i>—</i><input type="number" name="hbMax" min="10" max="180" /></div>
+            </label>
+            <label class="field">
+              <span>Тик видео-прогресса, мс</span>
+              <div class="range"><input type="number" name="videoMin" min="3000" max="20000" step="500" /><i>—</i><input type="number" name="videoMax" min="3000" max="30000" step="500" /></div>
+            </label>
+            <label class="field">
+              <span>«Переиграть» после цели, сек</span>
+              <div class="range"><input type="number" name="overMin" min="0" max="600" /><i>—</i><input type="number" name="overMax" min="0" max="900" /></div>
+            </label>
+            <label class="field">
+              <span>Пауза перед стартом, сек</span>
+              <div class="range"><input type="number" name="startMin" min="0" max="300" /><i>—</i><input type="number" name="startMax" min="0" max="600" /></div>
+            </label>
+            <label class="field">
+              <span>Пауза после выполнения, сек</span>
+              <div class="range"><input type="number" name="closeMin" min="0" max="300" /><i>—</i><input type="number" name="closeMax" min="0" max="600" /></div>
+            </label>
+            <label class="field">
+              <span>Пауза между квестами, мин</span>
+              <div class="range"><input type="number" name="gapMin" min="0" max="120" /><i>—</i><input type="number" name="gapMax" min="0" max="180" /></div>
+            </label>
+            <label class="field narrow">
+              <span>Максимум квестов за сессию</span>
+              <input type="number" name="maxQuests" min="1" max="20" />
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <footer class="modal-foot">
+        <button type="button" class="ghost" data-close="settings">Отмена</button>
+        <button type="submit" class="primary">Сохранить</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div id="toasts" class="toasts"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
