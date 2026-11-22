@@ -318,7 +318,14 @@ export class Engine extends EventEmitter {
     await sleepSafe(rand(cfg.startDelaySeconds[0], cfg.startDelaySeconds[1]) * 1000, signal);
 
     while (!signal.aborted) {
-      const response = await api.heartbeat(quest.id, { applicationId: task.appId, terminal: false, signal });
+      let response;
+      try {
+        response = await api.heartbeat(quest.id, { applicationId: task.appId, terminal: false, signal });
+      } catch (err) {
+        // Стоп во время запроса: выходим из цикла, чтобы всё равно отправить terminal.
+        if (signal.aborted) break;
+        throw err;
+      }
       const status = response.user_status || response;
       const progress = readProgress(status, task.type);
       value = Math.max(value, progress.value);
